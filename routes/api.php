@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [MobileAppController::class, 'home'])->name('home');
+Route::get('/assets/{id}', [MobileAppController::class, 'assets'])->name('dynamic.assets');
 
 Route::get('/live', [MobileAppController::class, 'live'])->name('live');
 

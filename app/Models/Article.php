@@ -21,7 +21,7 @@ class Article extends Model
     ];
 
     public function Category() {
-        return $this->belongsTo(Category::class, 'categories_id');
+        return $this->belongsTo(Category::class);
     }
 
     public function Photo() {

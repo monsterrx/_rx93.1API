@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Models\Title;
+use PHPUnit\Exception;
 use Str;
 use Carbon\Carbon;
 use App\Models\Show;
@@ -123,7 +125,7 @@ class MobileAppController extends Controller
         $day = Carbon::now()->format('l');
         $time = date('H:i');
 
-        $stream = 'https://sg-icecast.eradioportal.com:8443/monsterrx'; // temporary link in-case 'http://sg-icecast-win.eradioportal.com:8000/monsterrx'
+        $stream = 'https://ph-icecast-win.eradioportal.com:8443/monsterrx'; // 'https://sg-icecast.eradioportal.com:8443/monsterrx' // temporary link in-case 'http://sg-icecast-win.eradioportal.com:8000/monsterrx'
 
         $currentShow = Show::with('Timeslot', 'Jock.Employee')
             ->whereHas('Timeslot', function($query) {
@@ -207,7 +209,7 @@ class MobileAppController extends Controller
 
         if($category_id) {
             $articles = Article::with('Employee', 'Category')
-                ->where('categories_id', $category_id)
+                ->where('category_id', $category_id)
                 ->whereNotNull('published_at')
                 ->where('location', $this->getStationCode())
                 ->orderBy('created_at', 'desc')
@@ -351,5 +353,34 @@ class MobileAppController extends Controller
         $chart->save();
 
         return response()->json(['status' => 'success', 'message' => 'Vote Sent!']);
+    }
+
+    public function assets($id) {
+        try {
+            $title = Title::with('Asset')->findOrFail($id);
+
+            $title->Asset->logo = $this->verifyPhoto($title->Asset->logo, '_assets/mobile');
+            $title->Asset->chart_icon = $this->verifyPhoto($title->Asset->chart_icon, '_assets/mobile');
+            $title->Asset->article_icon = $this->verifyPhoto($title->Asset->article_icon, '_assets/mobile');
+            $title->Asset->podcast_icon = $this->verifyPhoto($title->Asset->podcast_icon, '_assets/mobile');
+            $title->Asset->article_page_icon = $this->verifyPhoto($title->Asset->article_page_icon, '_assets/mobile');
+            $title->Asset->youtube_page_icon = $this->verifyPhoto($title->Asset->youtube_page_icon, '_assets/mobile');
+
+            $title->Asset->logo = $this->getAssetUrl('_assets/mobile') . $title->Asset->logo;
+            $title->Asset->chart_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->chart_icon;
+            $title->Asset->article_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->article_icon;
+            $title->Asset->podcast_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->podcast_icon;
+            $title->Asset->article_page_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->article_page_icon;
+            $title->Asset->youtube_page_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->youtube_page_icon;
+
+            return response()->json([
+                'title' => $title
+            ]);
+        } catch (Exception $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage()
+            ], 404);
+        }
     }
 }
