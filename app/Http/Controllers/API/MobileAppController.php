@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Title;
+use Illuminate\Database\Eloquent\Builder;
 use PHPUnit\Exception;
 use Str;
 use Carbon\Carbon;
@@ -70,6 +71,10 @@ class MobileAppController extends Controller
             })->whereNull('deleted_at')
             ->first();
 
+        $shows = Show::has('Podcast')
+            ->where('location', $this->getStationCode())
+            ->get();
+
         $chart_date = date('F d, Y', strtotime($charts->first()->dated));
 
         $jocks = $this->jocksQuery($time, $day);
@@ -93,6 +98,17 @@ class MobileAppController extends Controller
             $jock->profile_image = $this->getAssetUrl('jocks') . $jock->profile_image;
         }
 
+        foreach ($shows as $show) {
+            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+            $show->background_image = $this->getAssetUrl('shows') . $show->background_image;
+
+            $show->icon = $this->verifyPhoto($show->icon, 'shows');
+            $show->icon = $this->getAssetUrl('shows') . $show->icon;
+
+            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
+            $show->header_image = $this->getAssetUrl('shows') . $show->header_image;
+        }
+
         if($currentShow) {
             $currentShow->background_image = $this->verifyPhoto($currentShow->background_image, 'shows');
             $currentShow->background_image = $this->getAssetUrl('shows') . $currentShow->background_image;
@@ -102,6 +118,7 @@ class MobileAppController extends Controller
                 'charts' => $charts,
                 'articles' => $articles,
                 'podcasts' => $podcasts,
+                'shows' => $shows,
                 'chart_date' => $chart_date,
                 'jocks' => $jocks,
                 'session_id' => $session_id
@@ -113,6 +130,7 @@ class MobileAppController extends Controller
             'charts' => $charts,
             'articles' => $articles,
             'podcasts' => $podcasts,
+            'shows' => $shows,
             'chart_date' => $chart_date,
             'show' => $currentShow,
             'jocks' => $jocks,
@@ -382,5 +400,37 @@ class MobileAppController extends Controller
                 'message' => $exception->getMessage()
             ], 404);
         }
+    }
+
+    public function show($id) {
+        try {
+            $podcasts = Podcast::with('Show')
+                ->where('show_id', $id)
+                ->orderByDesc('created_at')
+                ->simplePaginate(15);
+
+            foreach ($podcasts as $podcast) {
+                $podcast->image = $this->verifyPhoto($podcast->image, 'podcasts');
+                $podcast->image = $this->getAssetUrl('podcasts') . $podcast->image;
+            }
+
+            $podcast->Show->background_image = $this->verifyPhoto($podcast->Show->background_image, 'shows');
+            $podcast->Show->background_image = $this->getAssetUrl('shows') . $podcast->Show->background_image;
+
+            $podcast->Show->icon = $this->verifyPhoto($podcast->Show->icon, 'shows');
+            $podcast->Show->icon = $this->getAssetUrl('shows') . $podcast->Show->icon;
+
+            $podcast->Show->header_image = $this->verifyPhoto($podcast->Show->header_image, 'shows');
+            $podcast->Show->header_image = $this->getAssetUrl('shows') . $podcast->Show->header_image;
+        } catch (Exception $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage()
+            ], 404);
+        }
+
+        return response()->json([
+            'podcasts' => $podcasts
+        ]);
     }
 }

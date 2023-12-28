@@ -18,6 +18,7 @@ Route::get('/', [MobileAppController::class, 'home'])->name('home');
 Route::get('/assets/{id}', [MobileAppController::class, 'assets'])->name('dynamic.assets');
 
 Route::get('/live', [MobileAppController::class, 'live'])->name('live');
+Route::get('/show/{id}', [MobileAppController::class, 'show'])->name('view.show.podcasts');
 
 Route::get('/charts', [MobileAppController::class, 'charts'])->name('charts');
 Route::get('/charts/vote', [MobileAppController::class, 'vote'])->name('vote');
