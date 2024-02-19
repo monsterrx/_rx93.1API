@@ -143,7 +143,8 @@ class MobileAppController extends Controller
         $day = Carbon::now()->format('l');
         $time = date('H:i');
 
-        $stream = 'https://ph-icecast-win.eradioportal.com:8443/monsterrx'; // 'https://sg-icecast.eradioportal.com:8443/monsterrx' // temporary link in-case 'http://sg-icecast-win.eradioportal.com:8000/monsterrx'
+        // 20240219 Update;
+        $stream = 'https://ph-icecast-win.eradioportal.com:8443/monsterrrx';
 
         $currentShow = Show::with('Timeslot', 'Jock.Employee')
             ->whereHas('Timeslot', function($query) {
