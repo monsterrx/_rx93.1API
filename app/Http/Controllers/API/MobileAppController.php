@@ -176,9 +176,9 @@ class MobileAppController extends Controller
             return response()->json(['show' => $currentShow, 'live' => $stream]);
         }
 
-        $show_id = $currentShow['id'];
-
-        switch ($show_id) {
+        // 20240305 - Commented by Sean Philip Cruz
+        // $show_id = $currentShow['id'];
+        /*switch ($show_id) {
             case '1' || (1 && $day === 'Tuesday' || $day === 'Friday'): {
                 $currentJocks = $this->removeTMRJock(26, $time, $day); // Markki Stroem
                 // return response()->json(['jocks' => $currentJocks, 'timeslots' => $showList, 'show' => $currentShow, 'podcasts' => $podcasts, 'live' => $stream]);
@@ -192,7 +192,10 @@ class MobileAppController extends Controller
 
                 return response()->json(['show' => $currentShow, 'jocks' => $currentJocks, 'live' => $stream]);
             }
-        }
+        }*/
+        $currentJocks = $this->jocksQuery($time, $day);
+
+        return response()->json(['show' => $currentShow, 'jocks' => $currentJocks, 'live' => $stream]);
     }
 
     public function charts() {
