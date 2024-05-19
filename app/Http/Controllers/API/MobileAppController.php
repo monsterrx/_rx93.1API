@@ -254,6 +254,8 @@ class MobileAppController extends Controller
         $article->image = $this->verifyPhoto($article->image, 'articles');
         $article->image = $this->getAssetUrl('articles') . $article->image;
 
+        $article->update_date = date('F d, Y', strtotime($article->updated_at));
+        $article->publish_date = date('F d, Y', strtotime($article->published_at));
         $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
 
         return response()->json(['article' => $article]);
