@@ -146,7 +146,9 @@ class MobileAppController extends Controller
         // 20240219 Update;
         // $stream = 'https://ph-icecast-win.eradioportal.com:8443/monsterrrx';
         // 20240419 Update
-        $stream = 'https://in-icecast.eradioportal.com:8443/monsterrrx';
+        // $stream = 'https://in-icecast.eradioportal.com:8443/monsterrrx';
+        // 20240924 Update
+        $stream = 'https://sg-icecast.eradioportal.com:8443/monsterrrx';
 
         $currentShow = Show::with('Timeslot', 'Jock.Employee')
             ->whereHas('Timeslot', function($query) {
