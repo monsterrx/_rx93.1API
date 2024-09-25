@@ -230,6 +230,7 @@ class MobileAppController extends Controller
 
         foreach ($articles as $article) {
             $article->image = $this->verifyPhoto($article->image, 'articles');
+            $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
         }
 
         return response()->json(['categories' => $categories, 'articles' => $articles, 'next' => $articles->nextPageUrl()]);
