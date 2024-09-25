@@ -1,0 +1,37 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: httpd:latest
+    container_name: monsterApi_web
+    ports:
+      - "9010:80"
+    volumes:
+      - .:/var/www/html/monsterApi
+    networks:
+      - rx931
+
+  db:
+    image: mysql:5.7
+    container_name: monsterApi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: rxninthr_monster
+      # MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3310:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - rx931
+
+networks:
+  rx931:
+    driver: bridge
+
+volumes:
+  dbdata:

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Title;
+use App\Traits\SystemFunctions;
 use Illuminate\Database\Eloquent\Builder;
 use PHPUnit\Exception;
 use Str;
@@ -19,6 +20,8 @@ use App\Http\Controllers\Controller;
 
 class MobileAppController extends Controller
 {
+    use SystemFunctions;
+
     public function home(Request $request) {
         $day = Carbon::now()->format('l');
         $time = date('H:i');
@@ -148,7 +151,7 @@ class MobileAppController extends Controller
         // 20240419 Update
         // $stream = 'https://in-icecast.eradioportal.com:8443/monsterrrx';
         // 20240924 Update
-        $stream = 'https://sg-icecast.eradioportal.com:8443/monsterrrx';
+        $stream = $this->getStream();
 
         $currentShow = Show::with('Timeslot', 'Jock.Employee')
             ->whereHas('Timeslot', function($query) {
