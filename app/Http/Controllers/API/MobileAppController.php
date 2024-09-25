@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Title;
+use App\Traits\AssetProcessors;
+use App\Traits\ChartFunctions;
+use App\Traits\JockFunctions;
+use App\Traits\MediaProcessors;
 use App\Traits\SystemFunctions;
 use Illuminate\Database\Eloquent\Builder;
 use PHPUnit\Exception;
@@ -20,7 +24,7 @@ use App\Http\Controllers\Controller;
 
 class MobileAppController extends Controller
 {
-    use SystemFunctions;
+    use SystemFunctions, JockFunctions, AssetProcessors, MediaProcessors, ChartFunctions;
 
     public function home(Request $request) {
         $day = Carbon::now()->format('l');
@@ -44,7 +48,8 @@ class MobileAppController extends Controller
             ->get()
             ->take(5);
 
-        $articles = Article::with('Employee')->latest()
+        $articles = Article::with('Employee')
+            ->latest()
             ->whereNull('deleted_at')
             ->whereNotNull('published_at')
             ->where('location', $this->getStationCode())
@@ -83,38 +88,31 @@ class MobileAppController extends Controller
         $jocks = $this->jocksQuery($time, $day);
 
         foreach ($charts as $chart) {
-            $chart->Song->Album->image = $this->getAssetUrl('albums') . $chart->Song->Album->image;
+            $chart->Song->Album->image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
         }
 
         foreach ($articles as $article) {
             $article->image = $this->verifyPhoto($article['image'], 'articles');
-            $article->image = $this->getAssetUrl('articles') . $article->image;
         }
 
         foreach ($podcasts as $podcast) {
             $podcast->image = $this->verifyPhoto($podcast['image'], 'podcasts');
-            $podcast->image = $this->getAssetUrl('podcasts') . $podcast->image;
         }
 
         foreach ($jocks as $jock) {
             $jock->profile_image = $this->verifyPhoto($jock->profile_image, 'jocks');
-            $jock->profile_image = $this->getAssetUrl('jocks') . $jock->profile_image;
         }
 
         foreach ($shows as $show) {
             $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
-            $show->background_image = $this->getAssetUrl('shows') . $show->background_image;
 
             $show->icon = $this->verifyPhoto($show->icon, 'shows');
-            $show->icon = $this->getAssetUrl('shows') . $show->icon;
 
             $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
-            $show->header_image = $this->getAssetUrl('shows') . $show->header_image;
         }
 
         if($currentShow) {
             $currentShow->background_image = $this->verifyPhoto($currentShow->background_image, 'shows');
-            $currentShow->background_image = $this->getAssetUrl('shows') . $currentShow->background_image;
 
             return response()->json([
                 'giveaways' => $giveaway,
@@ -146,18 +144,11 @@ class MobileAppController extends Controller
         $day = Carbon::now()->format('l');
         $time = date('H:i');
 
-        // 20240219 Update;
-        // $stream = 'https://ph-icecast-win.eradioportal.com:8443/monsterrrx';
-        // 20240419 Update
-        // $stream = 'https://in-icecast.eradioportal.com:8443/monsterrrx';
         // 20240924 Update
         $stream = $this->getStream();
 
-        $currentShow = Show::with('Timeslot', 'Jock.Employee')
-            ->whereHas('Timeslot', function($query) {
-                $day = Carbon::now()->format('l');
-                $time = date('H:i');
-
+        $currentShow = Show::query()
+            ->whereHas('Timeslot', function($query) use ($day, $time) {
                 $query->whereNull('deleted_at')
                     ->where('end', '>', $time)
                     ->where('start', '<=', $time)
@@ -166,6 +157,10 @@ class MobileAppController extends Controller
                     ->orderBy('start');
             })->whereNull('deleted_at')
             ->first();
+
+        $currentShow['background_image'] = $this->verifyPhoto($currentShow['background_image'], 'shows');
+        $currentShow['icon'] = $this->verifyPhoto($currentShow['icon'], 'shows');
+        $currentShow['header_image'] = $this->verifyPhoto($currentShow['header_image'], 'shows');
 
         $showList = Timeslot::with('Show')
             ->whereNull('deleted_at')
@@ -183,24 +178,13 @@ class MobileAppController extends Controller
             return response()->json(['show' => $currentShow, 'live' => $stream]);
         }
 
-        // 20240305 - Commented by Sean Philip Cruz
-        // $show_id = $currentShow['id'];
-        /*switch ($show_id) {
-            case '1' || (1 && $day === 'Tuesday' || $day === 'Friday'): {
-                $currentJocks = $this->removeTMRJock(26, $time, $day); // Markki Stroem
-                // return response()->json(['jocks' => $currentJocks, 'timeslots' => $showList, 'show' => $currentShow, 'podcasts' => $podcasts, 'live' => $stream]);
-            }
-            case '1' || (1 && $day === 'Wednesday'): {
-                $currentJocks = $this->removeTMRJock(4, $time, $day); // Rica G. or Rica Garcia
-                // return response()->json(['jocks' => $currentJocks, 'timeslots' => $showList, 'show' => $currentShow, 'podcasts' => $podcasts, 'live' => $stream]);
-            }
-            default: {
-                $currentJocks = $this->jocksQuery($time, $day);
-
-                return response()->json(['show' => $currentShow, 'jocks' => $currentJocks, 'live' => $stream]);
-            }
-        }*/
         $currentJocks = $this->jocksQuery($time, $day);
+
+        foreach ($currentJocks as $jock) {
+            $jock->profile_image = $this->verifyPhoto($jock->profile_image, 'jocks');
+            $jock->background_image = $this->verifyPhoto($jock->background_image, 'jocks');
+            $jock->main_image = $this->verifyPhoto($jock->main_image, 'jocks');
+        }
 
         return response()->json(['show' => $currentShow, 'jocks' => $currentJocks, 'live' => $stream]);
     }
@@ -215,7 +199,6 @@ class MobileAppController extends Controller
 
         foreach ($charts as $chart) {
             $chart->Song->Album->image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
-            $chart->Song->Album->image = $this->getAssetUrl('albums') . $chart->Song->Album->image;
         }
 
         return response()->json(['charts' => $charts]);
@@ -247,7 +230,6 @@ class MobileAppController extends Controller
 
         foreach ($articles as $article) {
             $article->image = $this->verifyPhoto($article->image, 'articles');
-            $article->image = $this->getAssetUrl('articles') . $article->image;
         }
 
         return response()->json(['categories' => $categories, 'articles' => $articles, 'next' => $articles->nextPageUrl()]);
@@ -257,7 +239,6 @@ class MobileAppController extends Controller
         $article = Article::with('Employee', 'Category' ,'Content', 'Relevant', 'Photo')->findOrFail($id);
 
         $article->image = $this->verifyPhoto($article->image, 'articles');
-        $article->image = $this->getAssetUrl('articles') . $article->image;
 
         $article->update_date = date('F d, Y', strtotime($article->updated_at));
         $article->publish_date = date('F d, Y', strtotime($article->published_at));
@@ -295,7 +276,6 @@ class MobileAppController extends Controller
         foreach ($podcasts as $podcast) {
             $podcast['episode'] = Str::limit($podcast['episode'], 16);
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
-            $podcast['image'] = $this->getAssetUrl('podcasts') . $podcast['image'];
         }
 
         return response()->json(['shows' => $shows, 'podcasts' => $podcasts, 'next' => $podcasts->nextPageUrl()]);
@@ -355,12 +335,10 @@ class MobileAppController extends Controller
 
         foreach ($podcasts as $podcast) {
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
-            $podcast['image'] = $this->getAssetUrl('podcasts') . $podcast['image'];
         }
 
         foreach ($articles as $article) {
             $article['image'] = $this->verifyPhoto($article['image'], 'articles');
-            $article['image'] = $this->getAssetUrl('articles') . $article['image'];
         }
 
         return response()->json(['podcasts' => $podcasts, 'articles' => $articles]);
@@ -383,64 +361,42 @@ class MobileAppController extends Controller
         ++$chart->phone_votes;
         $chart->save();
 
-        return response()->json(['status' => 'success', 'message' => 'Vote Sent!']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Vote Sent!'
+        ]);
     }
 
     public function assets($id) {
-        try {
-            $title = Title::with('Asset')->findOrFail($id);
+        $title = Title::with('Asset')->findOrFail($id);
 
-            $title->Asset->logo = $this->verifyPhoto($title->Asset->logo, '_assets/mobile');
-            $title->Asset->chart_icon = $this->verifyPhoto($title->Asset->chart_icon, '_assets/mobile');
-            $title->Asset->article_icon = $this->verifyPhoto($title->Asset->article_icon, '_assets/mobile');
-            $title->Asset->podcast_icon = $this->verifyPhoto($title->Asset->podcast_icon, '_assets/mobile');
-            $title->Asset->article_page_icon = $this->verifyPhoto($title->Asset->article_page_icon, '_assets/mobile');
-            $title->Asset->youtube_page_icon = $this->verifyPhoto($title->Asset->youtube_page_icon, '_assets/mobile');
+        $title->Asset->logo = $this->verifyPhoto($title->Asset->logo, '_assets/mobile');
+        $title->Asset->chart_icon = $this->verifyPhoto($title->Asset->chart_icon, '_assets/mobile');
+        $title->Asset->article_icon = $this->verifyPhoto($title->Asset->article_icon, '_assets/mobile');
+        $title->Asset->podcast_icon = $this->verifyPhoto($title->Asset->podcast_icon, '_assets/mobile');
+        $title->Asset->article_page_icon = $this->verifyPhoto($title->Asset->article_page_icon, '_assets/mobile');
+        $title->Asset->youtube_page_icon = $this->verifyPhoto($title->Asset->youtube_page_icon, '_assets/mobile');
 
-            $title->Asset->logo = $this->getAssetUrl('_assets/mobile') . $title->Asset->logo;
-            $title->Asset->chart_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->chart_icon;
-            $title->Asset->article_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->article_icon;
-            $title->Asset->podcast_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->podcast_icon;
-            $title->Asset->article_page_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->article_page_icon;
-            $title->Asset->youtube_page_icon = $this->getAssetUrl('_assets/mobile') . $title->Asset->youtube_page_icon;
-
-            return response()->json([
-                'title' => $title
-            ]);
-        } catch (Exception $exception) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $exception->getMessage()
-            ], 404);
-        }
+        return response()->json([
+            'title' => $title
+        ]);
     }
 
     public function show($id) {
-        try {
-            $podcasts = Podcast::with('Show')
-                ->where('show_id', $id)
-                ->orderByDesc('created_at')
-                ->simplePaginate(15);
+        $podcasts = Podcast::with('Show')
+            ->where('show_id', $id)
+            ->orderByDesc('created_at')
+            ->simplePaginate(15);
 
-            foreach ($podcasts as $podcast) {
-                $podcast->image = $this->verifyPhoto($podcast->image, 'podcasts');
-                $podcast->image = $this->getAssetUrl('podcasts') . $podcast->image;
-            }
-
-            $podcast->Show->background_image = $this->verifyPhoto($podcast->Show->background_image, 'shows');
-            $podcast->Show->background_image = $this->getAssetUrl('shows') . $podcast->Show->background_image;
-
-            $podcast->Show->icon = $this->verifyPhoto($podcast->Show->icon, 'shows');
-            $podcast->Show->icon = $this->getAssetUrl('shows') . $podcast->Show->icon;
-
-            $podcast->Show->header_image = $this->verifyPhoto($podcast->Show->header_image, 'shows');
-            $podcast->Show->header_image = $this->getAssetUrl('shows') . $podcast->Show->header_image;
-        } catch (Exception $exception) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $exception->getMessage()
-            ], 404);
+        foreach ($podcasts as $podcast) {
+            $podcast->image = $this->verifyPhoto($podcast->image, 'podcasts');
         }
+
+        $podcast->Show->background_image = $this->verifyPhoto($podcast->Show->background_image, 'shows');
+
+        $podcast->Show->icon = $this->verifyPhoto($podcast->Show->icon, 'shows');
+
+        $podcast->Show->header_image = $this->verifyPhoto($podcast->Show->header_image, 'shows');
 
         return response()->json([
             'podcasts' => $podcasts

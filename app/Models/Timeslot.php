@@ -20,4 +20,8 @@ class Timeslot extends Model
     public function Show() {
         return $this->belongsTo(Show::class);
     }
+
+    public function Jock() {
+        return $this->belongsToMany(Jock::class);
+    }
 }

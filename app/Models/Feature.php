@@ -2,17 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Feature extends Model
 {
-    use HasFactory;
-
     protected $table = 'featured_indiegrounds';
 
     protected $fillable = [
         'independent_id',
+        'header',
         'content',
         'month',
         'year',
@@ -20,6 +18,6 @@ class Feature extends Model
     ];
 
     public function Indie() {
-        return $this->belongsTo(Indie::class, 'independent_id');
+        return $this->belongsTo(Indie::class, 'indieground_id');
     }
 }

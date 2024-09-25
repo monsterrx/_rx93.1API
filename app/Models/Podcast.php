@@ -15,7 +15,7 @@ class Podcast extends Model
         'date',
         'link',
         'image',
-        'location',
+        'location'
     ];
 
     public function Show() {

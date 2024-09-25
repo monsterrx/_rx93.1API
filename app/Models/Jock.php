@@ -45,4 +45,8 @@ class Jock extends Model
         return $this->hasMany(Award::class, 'jock_id');
     }
 
+    public function Timeslot() {
+        return $this->belongsToMany(Timeslot::class);
+    }
+
 }

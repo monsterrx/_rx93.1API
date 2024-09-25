@@ -14,7 +14,7 @@ class Message extends Model
         'email',
         'contact_number',
         'topic',
-        'content',
+        'message',
         'is_seen',
         'location'
     ];

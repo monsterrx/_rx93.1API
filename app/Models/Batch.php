@@ -30,8 +30,4 @@ class Batch extends Model
     public function Sponsor() {
         return $this->belongsToMany(Sponsor::class);
     }
-
-    public function Scholar() {
-        return $this->hasMany(Student::class);
-    }
 }
