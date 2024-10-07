@@ -158,6 +158,10 @@ class MobileAppController extends Controller
             })->whereNull('deleted_at')
             ->first();
 
+        if ($currentShow == null) {
+            return response()->json(['show' => $currentShow, 'live' => $stream]);
+        }
+
         $currentShow['background_image'] = $this->verifyPhoto($currentShow['background_image'], 'shows');
         $currentShow['icon'] = $this->verifyPhoto($currentShow['icon'], 'shows');
         $currentShow['header_image'] = $this->verifyPhoto($currentShow['header_image'], 'shows');
@@ -172,10 +176,6 @@ class MobileAppController extends Controller
         foreach ($showList as $timeslot) {
             $timeslot['start'] = date('h:i A', strtotime($timeslot['start']));
             $timeslot['end'] = date('h:i A', strtotime($timeslot['end']));
-        }
-
-        if($currentShow === null) {
-            return response()->json(['show' => $currentShow, 'live' => $stream]);
         }
 
         $currentJocks = $this->jocksQuery($time, $day);
@@ -237,7 +237,7 @@ class MobileAppController extends Controller
     }
 
     public function viewArticle($id) {
-        $article = Article::with('Employee', 'Category' ,'Content', 'Relevant', 'Photo')->findOrFail($id);
+        $article = Article::with('Employee', 'Category' ,'Content', 'Relevant', 'Image')->findOrFail($id);
 
         $article->image = $this->verifyPhoto($article->image, 'articles');
 
@@ -283,9 +283,12 @@ class MobileAppController extends Controller
     }
 
     public function viewPodcast($id) {
-        $podcasts = Podcast::with('Show')->findOrFail($id);
+        $podcast = Podcast::with('Show')->findOrFail($id);
 
-        return response()->json(['podcast' => $podcasts]);
+        $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
+        $podcast['show']['background_image'] = $this->verifyPhoto($podcast['show']['background_image'], 'shows');
+
+        return response()->json(['podcast' => $podcast]);
     }
 
     public function youTube($max) {
