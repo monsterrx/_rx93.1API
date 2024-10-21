@@ -186,7 +186,11 @@ class MobileAppController extends Controller
             $jock->main_image = $this->verifyPhoto($jock->main_image, 'jocks');
         }
 
-        return response()->json(['show' => $currentShow, 'jocks' => $currentJocks, 'live' => $stream]);
+        return response()->json([
+            'show' => $currentShow,
+            'jocks' => $currentJocks,
+            'live' => $stream
+        ]);
     }
 
     public function charts() {
@@ -201,7 +205,9 @@ class MobileAppController extends Controller
             $chart->Song->Album->image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
         }
 
-        return response()->json(['charts' => $charts]);
+        return response()->json([
+            'charts' => $charts
+        ]);
     }
 
     public function articles(Request $request) {
@@ -233,19 +239,26 @@ class MobileAppController extends Controller
             $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
         }
 
-        return response()->json(['categories' => $categories, 'articles' => $articles, 'next' => $articles->nextPageUrl()]);
+        return response()->json([
+            'categories' => $categories,
+            'articles' => $articles,
+            'next' => $articles->nextPageUrl()
+        ]);
     }
 
     public function viewArticle($id) {
-        $article = Article::with('Employee', 'Category' ,'Content', 'Relevant', 'Image')->findOrFail($id);
+        $article = Article::with('Employee', 'Category' ,'Content', 'Relevant')->findOrFail($id);
 
         $article->image = $this->verifyPhoto($article->image, 'articles');
 
         $article->update_date = date('F d, Y', strtotime($article->updated_at));
         $article->publish_date = date('F d, Y', strtotime($article->published_at));
+        $article->time_passed = $this->timePassedSincePublished($article->published_at);
         $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
 
-        return response()->json(['article' => $article]);
+        return response()->json([
+            'article' => $article
+        ]);
     }
 
     public function podcasts(Request $request) {
@@ -279,7 +292,11 @@ class MobileAppController extends Controller
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
         }
 
-        return response()->json(['shows' => $shows, 'podcasts' => $podcasts, 'next' => $podcasts->nextPageUrl()]);
+        return response()->json([
+            'shows' => $shows,
+            'podcasts' => $podcasts,
+            'next' => $podcasts->nextPageUrl()
+        ]);
     }
 
     public function viewPodcast($id) {
@@ -288,7 +305,9 @@ class MobileAppController extends Controller
         $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
         $podcast['show']['background_image'] = $this->verifyPhoto($podcast['show']['background_image'], 'shows');
 
-        return response()->json(['podcast' => $podcast]);
+        return response()->json([
+            'podcast' => $podcast
+        ]);
     }
 
     public function youTube($max) {
@@ -345,7 +364,10 @@ class MobileAppController extends Controller
             $article['image'] = $this->verifyPhoto($article['image'], 'articles');
         }
 
-        return response()->json(['podcasts' => $podcasts, 'articles' => $articles]);
+        return response()->json([
+            'podcasts' => $podcasts,
+            'articles' => $articles
+        ]);
     }
 
     public function help() {

@@ -5,12 +5,20 @@ namespace App\Traits;
 use App\Models\Show;
 use App\Models\StreamLink;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 trait SystemFunctions {
-    public function getAppEnvironment() {
+
+    public function timePassedSincePublished($publishedDate) : string {
+        $date = Carbon::parse($publishedDate);
+
+        return $date->diffForHumans();
+    }
+
+    public function getAppEnvironment() : string {
         return Env::get('APP_ENV') === 'local' ? 'dev' : 'prod';
     }
 
@@ -18,11 +26,11 @@ trait SystemFunctions {
         return Env::get('APP_URL').'/images/'.$asset.'/';
     }
 
-    public function getStationName() {
+    public function getStationName() : string {
         return $this->getStationCode() === 'mnl' ? 'Monster RX93.1' : ($this->getStationCode() === 'cbu' ? 'Monster BT105.9 Cebu' : 'Monster BT99.5 Davao');
     }
 
-    public function getFileLocation($folderName, $file) {
+    public function getFileLocation($folderName, $file) : string {
         return $this->getAppEnvironment() === 'dev' ? 'http://127.0.0.6/images/'.$folderName.'/'.$file : $this->getAppUrl() . '/images/'.$folderName.'/'.$file;
     }
 
