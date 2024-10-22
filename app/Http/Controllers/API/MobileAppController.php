@@ -38,7 +38,7 @@ class MobileAppController extends Controller
             ->where('location', $this->getStationCode())
             ->get();
 
-        $charts = Chart::with('Song.Album.Artist')
+        $charts = Chart::query()
             ->whereNull('deleted_at')
             ->where('dated', $this->getLatestChartDate())
             ->where('daily', 0)
