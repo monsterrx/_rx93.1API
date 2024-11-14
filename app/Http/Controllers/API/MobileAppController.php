@@ -38,7 +38,7 @@ class MobileAppController extends Controller
             ->where('location', $this->getStationCode())
             ->get();
 
-        $charts = Chart::query()
+        $charts = Chart::with('Song.Album.Artist')
             ->whereNull('deleted_at')
             ->where('dated', $this->getLatestChartDate())
             ->where('daily', 0)
@@ -88,7 +88,9 @@ class MobileAppController extends Controller
         $jocks = $this->jocksQuery($time, $day);
 
         foreach ($charts as $chart) {
-            $chart->Song->Album->image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
+            $chart['song_artist'] = $chart->Song->Album->Artist->name;
+            $chart['song_name'] = $chart->Song->name;
+            $chart['album_image'] = $this->verifyPhoto($chart->Song->Album->image, 'albums');
         }
 
         foreach ($articles as $article) {
@@ -194,7 +196,8 @@ class MobileAppController extends Controller
     }
 
     public function charts() {
-        $charts = Chart::with('Song.Album.Artist')->where('dated', $this->getLatestChartDate())
+        $charts = Chart::with('Song.Album.Artist')
+            ->where('dated', $this->getLatestChartDate())
             ->where('daily', 0)
             ->where('is_posted', 1)
             ->where('location', $this->getStationCode())
@@ -202,7 +205,7 @@ class MobileAppController extends Controller
             ->get();
 
         foreach ($charts as $chart) {
-            $chart->Song->Album->image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
+            $chart->album_image = $this->verifyPhoto($chart->Song->Album->image, 'albums');
         }
 
         return response()->json([
@@ -211,7 +214,9 @@ class MobileAppController extends Controller
     }
 
     public function articles(Request $request) {
-        $categories = Category::has('Article')->whereNull('deleted_at')
+        $categories = Category::query()
+            ->has('Article')
+            ->whereNull('deleted_at')
             ->orderBy('name')
             ->get();
 
@@ -223,20 +228,58 @@ class MobileAppController extends Controller
             ->paginate(8);
 
         // for article filtering
-        $category_id = $request['category_id'];
+        $category_id = $request->get('category_id');
+        $keyword = $request->get('keyword');
 
         if($category_id) {
-            $articles = Article::with('Employee', 'Category')
+            try {
+                $category = Category::query()
+                    ->findOrFail($category_id);
+            } catch (Exception $e) {
+                return response()->json([
+                    'error' => 'Category not found'
+                ], 400);
+            }
+
+            $articles = Article::with('Employee')
                 ->where('category_id', $category_id)
                 ->whereNotNull('published_at')
                 ->where('location', $this->getStationCode())
                 ->orderBy('created_at', 'desc')
                 ->paginate(8);
+
+            if ($keyword) {
+                $articles = Article::with('Employee')
+                    ->where('category_id', $category_id)
+                    ->whereNotNull('published_at')
+                    ->where('location', $this->getStationCode())
+                    ->where('title', 'like', '%'.$keyword.'%')
+                    ->orWhere('heading', 'like', '%'.$keyword.'%')
+                    ->orWhereHas('Employee', function(Builder $query) use ($keyword) {
+                        $query->where('first_name', 'like', '%'.$keyword.'%')
+                            ->orWhere('last_name', 'like', '%'.$keyword.'%');
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->paginate(8);
+            }
+
+            foreach ($articles as $article) {
+                $article->image = $this->verifyPhoto($article->image, 'articles');
+                $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
+                $article->time_passed = $this->timePassedSincePublished($article->published_at);
+            }
+
+            return response()->json([
+                'category' => $category,
+                'articles' => $articles,
+                'next' => $articles->nextPageUrl()
+            ]);
         }
 
         foreach ($articles as $article) {
             $article->image = $this->verifyPhoto($article->image, 'articles');
             $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
+            $article->time_passed = $this->timePassedSincePublished($article->published_at);
         }
 
         return response()->json([
@@ -274,28 +317,62 @@ class MobileAppController extends Controller
             ->simplePaginate(8);
 
         // for podcast filtering
-        $show_id = $request['show_id'];
+        $show_id = $request->get('show_id');
+        $keyword = $request->get('keyword');
 
         if($show_id) {
-            $podcasts = Podcast::with('Show')
+            $podcasts = Podcast::query()
                 ->whereNull('deleted_at')
                 ->where('show_id', $show_id)
                 ->where('location', $this->getStationCode())
                 ->orderBy('created_at', 'desc')
                 ->simplePaginate(8);
 
+            if ($keyword) {
+                $podcasts = Podcast::query()
+                    ->whereNull('deleted_at')
+                    ->where('show_id', $show_id)
+                    ->where('episode', 'like', '%'.$keyword.'%')
+                    ->where('location', $this->getStationCode())
+                    ->orderBy('created_at', 'desc')
+                    ->simplePaginate(8);
+            }
+
+            $show = Show::query()
+                ->findOrFail($show_id);
+
+            $show->icon = $this->verifyPhoto($show->icon, 'shows');
+            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
+
+            foreach ($podcasts as $podcast) {
+                $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
+                $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
+            }
+
             $podcasts->appends('show_id', $show_id);
+
+            return response()->json([
+                'show' => $show,
+                'podcasts' => $podcasts
+            ]);
         }
 
         foreach ($podcasts as $podcast) {
-            $podcast['episode'] = Str::limit($podcast['episode'], 16);
+            $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
+        }
+
+        foreach ($shows as $show) {
+            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+            $show->icon = $this->verifyPhoto($show->icon, 'shows');
+            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
         }
 
         return response()->json([
             'shows' => $shows,
             'podcasts' => $podcasts,
-            'next' => $podcasts->nextPageUrl()
+            'next' => $podcasts->nextPageUrl() // to be removed when the mobile app is released
         ]);
     }
 
@@ -408,24 +485,35 @@ class MobileAppController extends Controller
         ]);
     }
 
-    public function show($id) {
-        $podcasts = Podcast::with('Show')
-            ->where('show_id', $id)
-            ->orderByDesc('created_at')
-            ->simplePaginate(15);
+    public function shows() {
+        $shows = Show::query()
+            ->get();
 
-        foreach ($podcasts as $podcast) {
+        foreach ($shows as $show) {
+            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+            $show->icon = $this->verifyPhoto($show->icon, 'shows');
+            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
+        }
+
+        return response()->json([
+            'shows' => $shows
+        ]);
+    }
+
+    public function viewShow($id) {
+        $show = Show::with('Podcast')
+            ->findOrFail($id);
+
+        $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+        $show->icon = $this->verifyPhoto($show->icon, 'shows');
+        $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
+
+        foreach ($show->Podcast as $podcast) {
             $podcast->image = $this->verifyPhoto($podcast->image, 'podcasts');
         }
 
-        $podcast->Show->background_image = $this->verifyPhoto($podcast->Show->background_image, 'shows');
-
-        $podcast->Show->icon = $this->verifyPhoto($podcast->Show->icon, 'shows');
-
-        $podcast->Show->header_image = $this->verifyPhoto($podcast->Show->header_image, 'shows');
-
         return response()->json([
-            'podcasts' => $podcasts
+            'show' => $show
         ]);
     }
 }

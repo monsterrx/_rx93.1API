@@ -29,6 +29,9 @@ Route::get('/articles/{id}', [MobileAppController::class, 'viewArticle'])->name(
 Route::get('/podcasts', [MobileAppController::class, 'podcasts'])->name('podcasts');
 Route::get('/podcasts/{id}', [MobileAppController::class, 'viewPodcast'])->name('view.podcast');
 
+Route::get('/shows', [MobileAppController::class, 'shows'])->name('shows');
+Route::get('/shows/{id}', [MobileAppController::class, 'viewShow'])->name('view.show');
+
 Route::get('/youtube/{max}', [MobileAppController::class, 'youTube'])->name('youtube');
 
 Route::get('/search', [MobileAppController::class, 'search'])->name('search');
