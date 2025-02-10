@@ -4,8 +4,8 @@ namespace App\Traits;
 
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 
 trait MediaProcessors {
     use SystemFunctions;
@@ -66,5 +66,21 @@ trait MediaProcessors {
         $response = Http::head($fileUrl);
 
         return $response->status() === 200;
+    }
+
+    public function replaceSourceText($source) {
+        $search = './../../../source/';
+
+        $replace = 'https://rx931.com/source/';
+
+        return str_replace($search, $replace, $source);
+    }
+
+    public function replaceArticleSourceText($source) {
+        $search = '../../../../Article/';
+
+        $replace = 'https://rx931.com/Article/';
+
+        return str_replace($search, $replace, $source);
     }
 }

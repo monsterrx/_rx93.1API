@@ -243,10 +243,11 @@ class MobileAppController extends Controller
 
             $articles = Article::with('Employee')
                 ->where('category_id', $category_id)
-                ->whereNotNull('published_at')
+                ->latest()
                 ->where('location', $this->getStationCode())
-                ->orderBy('created_at', 'desc')
-                ->paginate(8);
+                ->whereNotNull('published_at')
+                ->paginate(8)
+                ->appends('category_id', $category_id);
 
             if ($keyword) {
                 $articles = Article::with('Employee')
@@ -260,7 +261,11 @@ class MobileAppController extends Controller
                             ->orWhere('last_name', 'like', '%'.$keyword.'%');
                     })
                     ->orderBy('created_at', 'desc')
-                    ->paginate(8);
+                    ->paginate(8)
+                    ->appends([
+                        'category_id' => $category_id,
+                        'keyword' => $keyword
+                    ]);
             }
 
             foreach ($articles as $article) {
@@ -290,7 +295,15 @@ class MobileAppController extends Controller
     }
 
     public function viewArticle($id) {
-        $article = Article::with('Employee', 'Category' ,'Content', 'Relevant')->findOrFail($id);
+        try {
+            $article = Article::query()
+                ->with('Employee', 'Category' ,'Content', 'Relevant')
+                ->findOrFail($id);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Article not found'
+            ], 400);
+        }
 
         $article->image = $this->verifyPhoto($article->image, 'articles');
 
@@ -299,22 +312,29 @@ class MobileAppController extends Controller
         $article->time_passed = $this->timePassedSincePublished($article->published_at);
         $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
 
+        foreach ($article->Content as $articleContent) {
+            $articleContent->content = $this->replaceSourceText($articleContent->content);
+            $articleContent->content = $this->replaceArticleSourceText($articleContent->content);
+        }
+
         return response()->json([
             'article' => $article
         ]);
     }
 
     public function podcasts(Request $request) {
-        $shows = Show::has('Podcast')->whereNull('deleted_at')
+        $shows = Show::has('Podcast')
+            ->with('Jock')
+            ->whereNull('deleted_at')
             ->where('location', $this->getStationCode())
             ->orderBy('title')
             ->get();
 
-        $podcasts = Podcast::with('Show')
+        $podcasts = Podcast::with('Show.Jock')
             ->whereNull('deleted_at')
             ->where('location', $this->getStationCode())
             ->orderBy('created_at', 'desc')
-            ->simplePaginate(8);
+            ->paginate(8);
 
         // for podcast filtering
         $show_id = $request->get('show_id');
@@ -322,23 +342,31 @@ class MobileAppController extends Controller
 
         if($show_id) {
             $podcasts = Podcast::query()
+                ->with('Show.Jock')
                 ->whereNull('deleted_at')
                 ->where('show_id', $show_id)
                 ->where('location', $this->getStationCode())
                 ->orderBy('created_at', 'desc')
-                ->simplePaginate(8);
+                ->paginate(8)
+                ->appends('show_id', $show_id);
 
             if ($keyword) {
                 $podcasts = Podcast::query()
+                    ->with('Show.Jock')
                     ->whereNull('deleted_at')
                     ->where('show_id', $show_id)
                     ->where('episode', 'like', '%'.$keyword.'%')
                     ->where('location', $this->getStationCode())
                     ->orderBy('created_at', 'desc')
-                    ->simplePaginate(8);
+                    ->paginate(8)
+                    ->appends([
+                        'show_id' => $show_id,
+                        'keyword' => $keyword
+                    ]);
             }
 
             $show = Show::query()
+                ->with('Jock')
                 ->findOrFail($show_id);
 
             $show->icon = $this->verifyPhoto($show->icon, 'shows');
@@ -346,6 +374,8 @@ class MobileAppController extends Controller
             $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
 
             foreach ($podcasts as $podcast) {
+                $podcast['date'] = date('M d, Y', strtotime($podcast['created_at']));
+                $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
                 $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
                 $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
             }
@@ -359,6 +389,8 @@ class MobileAppController extends Controller
         }
 
         foreach ($podcasts as $podcast) {
+            $podcast['date'] = date('M d, Y', strtotime($podcast['created_at']));
+            $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
             $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
         }
@@ -423,14 +455,16 @@ class MobileAppController extends Controller
                 ->whereNull('deleted_at')
                 ->where('episode', 'like', '%'.$search.'%')
                 ->orderByDesc('created_at')
-                ->simplePaginate(5);
+                ->paginate(5)
+                ->appends('keyword', $search);
 
             $articles = Article::whereNull('deleted_at')
                 ->whereNotNull('published_at')
                 ->where('title', 'like', '%'.$search.'%')
                 ->orWhere('heading', 'like', '%'.$search.'%')
                 ->orderByDesc('created_at')
-                ->simplePaginate(5);
+                ->paginate(5)
+                ->appends('keyword', $search);
         }
 
         foreach ($podcasts as $podcast) {
@@ -487,6 +521,7 @@ class MobileAppController extends Controller
 
     public function shows() {
         $shows = Show::query()
+            ->with('Jock')
             ->get();
 
         foreach ($shows as $show) {
@@ -501,7 +536,8 @@ class MobileAppController extends Controller
     }
 
     public function viewShow($id) {
-        $show = Show::with('Podcast')
+        $show = Show::query()
+            ->with(['Podcast', 'Jock'])
             ->findOrFail($id);
 
         $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
