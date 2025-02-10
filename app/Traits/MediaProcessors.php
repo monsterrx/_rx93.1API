@@ -69,7 +69,7 @@ trait MediaProcessors {
     }
 
     public function replaceSourceText($source) {
-        $search = './../../../source/';
+        $search = '../../../../source/';
 
         $replace = 'https://rx931.com/source/';
 
