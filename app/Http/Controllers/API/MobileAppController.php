@@ -32,6 +32,12 @@ class MobileAppController extends Controller
 
         $session_id = $this->IdGenerator(10);
 
+        $categories = Category::query()
+            ->has('Article')
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get();
+
         $giveaway = Contest::whereNull('deleted_at')
             ->orderBy('type')
             ->where('is_active', 1)
@@ -48,7 +54,7 @@ class MobileAppController extends Controller
             ->get()
             ->take(5);
 
-        $articles = Article::with('Employee')
+        $articles = Article::with('Employee', 'Category')
             ->latest()
             ->whereNull('deleted_at')
             ->whereNotNull('published_at')
@@ -124,7 +130,8 @@ class MobileAppController extends Controller
                 'shows' => $shows,
                 'chart_date' => $chart_date,
                 'jocks' => $jocks,
-                'session_id' => $session_id
+                'session_id' => $session_id,
+                'categories' => $categories
             ]);
         }
 
@@ -137,7 +144,8 @@ class MobileAppController extends Controller
             'chart_date' => $chart_date,
             'show' => $currentShow,
             'jocks' => $jocks,
-            'session_id' => $session_id
+            'session_id' => $session_id,
+            'categories' => $categories
         ]);
     }
 
