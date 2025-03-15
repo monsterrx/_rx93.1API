@@ -41,4 +41,8 @@ class Show extends Model
     public function Podcast() {
         return $this->hasMany(Podcast::class);
     }
+
+    public function podcastCount() {
+        return $this->hasMany(Podcast::class)->count();
+    }
 }

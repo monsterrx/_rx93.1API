@@ -332,10 +332,14 @@ class MobileAppController extends Controller
 
     public function podcasts(Request $request) {
         $shows = Show::has('Podcast')
+            ->withCount(['Podcast' => function ($query) {
+            $query->whereNull('deleted_at')
+                ->where('location', $this->getStationCode());
+            }])
             ->with('Jock')
             ->whereNull('deleted_at')
             ->where('location', $this->getStationCode())
-            ->orderBy('title')
+            ->orderBy('podcast_count', 'desc')
             ->get();
 
         $podcasts = Podcast::with('Show.Jock')
