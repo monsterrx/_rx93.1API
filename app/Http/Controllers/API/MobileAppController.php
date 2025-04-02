@@ -260,14 +260,16 @@ class MobileAppController extends Controller
             if ($keyword) {
                 $articles = Article::with('Employee')
                     ->where('category_id', $category_id)
+                    ->where(function($query) use ($keyword) {
+                        $query->where('title', 'like', '%'.$keyword.'%')
+                            ->orWhere('heading', 'like', '%'.$keyword.'%')
+                            ->orWhereHas('Employee', function(Builder $query) use ($keyword) {
+                                $query->where('first_name', 'like', '%'.$keyword.'%')
+                                    ->orWhere('last_name', 'like', '%'.$keyword.'%');
+                            });
+                    })
                     ->whereNotNull('published_at')
                     ->where('location', $this->getStationCode())
-                    ->where('title', 'like', '%'.$keyword.'%')
-                    ->orWhere('heading', 'like', '%'.$keyword.'%')
-                    ->orWhereHas('Employee', function(Builder $query) use ($keyword) {
-                        $query->where('first_name', 'like', '%'.$keyword.'%')
-                            ->orWhere('last_name', 'like', '%'.$keyword.'%');
-                    })
                     ->orderBy('created_at', 'desc')
                     ->paginate(8)
                     ->appends([
