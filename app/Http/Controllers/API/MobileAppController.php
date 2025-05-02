@@ -392,6 +392,7 @@ class MobileAppController extends Controller
                 $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
                 $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
                 $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
+                $podcast['stream'] = $podcast->link;
             }
 
             $podcasts->appends('show_id', $show_id);
@@ -407,6 +408,7 @@ class MobileAppController extends Controller
             $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
             $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
+            $podcast['stream'] = $podcast->link;
         }
 
         foreach ($shows as $show) {
@@ -427,6 +429,7 @@ class MobileAppController extends Controller
 
         $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
         $podcast['show']['background_image'] = $this->verifyPhoto($podcast['show']['background_image'], 'shows');
+        $podcast['stream'] = $podcast->link;
 
         return response()->json([
             'podcast' => $podcast
