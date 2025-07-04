@@ -33,8 +33,12 @@ class MobileAppController extends Controller
         $session_id = $this->IdGenerator(10);
 
         $categories = Category::query()
-            ->has('Article')
-            ->whereNull('deleted_at')
+            ->has('Article', '>', 0)
+            ->whereHas('Article', function (Builder $query) {
+                $query->whereNull('deleted_at')
+                    ->whereNotNull('published_at')
+                    ->where('location', $this->getStationCode());
+            })
             ->orderBy('name')
             ->get();
 
@@ -223,8 +227,12 @@ class MobileAppController extends Controller
 
     public function articles(Request $request) {
         $categories = Category::query()
-            ->has('Article')
-            ->whereNull('deleted_at')
+            ->has('Article', '>', 0)
+            ->whereHas('Article', function (Builder $query) {
+                $query->whereNull('deleted_at')
+                    ->whereNotNull('published_at')
+                    ->where('location', $this->getStationCode());
+            })
             ->orderBy('name')
             ->get();
 
