@@ -546,7 +546,10 @@ class MobileAppController extends Controller
 
     public function shows() {
         $shows = Show::query()
+            ->has('Jock')
             ->with('Jock')
+            ->where('location', $this->getStationCode())
+            ->where('is_active', '=', 1)
             ->get();
 
         foreach ($shows as $show) {
