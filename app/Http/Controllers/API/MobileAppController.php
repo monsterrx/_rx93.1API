@@ -19,6 +19,7 @@ use App\Models\Contest;
 use App\Models\Podcast;
 use App\Models\Timeslot;
 use App\Models\Category;
+use App\Models\Asset;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
@@ -355,7 +356,7 @@ class MobileAppController extends Controller
         $podcasts = Podcast::with('Show.Jock')
             ->whereNull('deleted_at')
             ->where('location', $this->getStationCode())
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date', 'desc')
             ->paginate(8);
 
         // for podcast filtering
@@ -368,7 +369,7 @@ class MobileAppController extends Controller
                 ->whereNull('deleted_at')
                 ->where('show_id', $show_id)
                 ->where('location', $this->getStationCode())
-                ->orderBy('created_at', 'desc')
+                ->orderBy('date', 'desc')
                 ->paginate(8)
                 ->appends('show_id', $show_id);
 
@@ -379,7 +380,7 @@ class MobileAppController extends Controller
                     ->where('show_id', $show_id)
                     ->where('episode', 'like', '%'.$keyword.'%')
                     ->where('location', $this->getStationCode())
-                    ->orderBy('created_at', 'desc')
+                    ->orderBy('date', 'desc')
                     ->paginate(8)
                     ->appends([
                         'show_id' => $show_id,
@@ -396,7 +397,7 @@ class MobileAppController extends Controller
             $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
 
             foreach ($podcasts as $podcast) {
-                $podcast['date'] = date('M d, Y', strtotime($podcast['created_at']));
+                $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
                 $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
                 $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
                 $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
@@ -412,7 +413,7 @@ class MobileAppController extends Controller
         }
 
         foreach ($podcasts as $podcast) {
-            $podcast['date'] = date('M d, Y', strtotime($podcast['created_at']));
+            $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
             $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
             $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
@@ -529,15 +530,22 @@ class MobileAppController extends Controller
         ]);
     }
 
-    public function assets($id) {
-        $title = Title::with('Asset')->findOrFail($id);
+    public function assets($id, Request $request) {
+        $theme = $request['theme'] == 'dark' ? 1 : 0;
 
-        $title->Asset->logo = $this->verifyPhoto($title->Asset->logo, '_assets/mobile');
-        $title->Asset->chart_icon = $this->verifyPhoto($title->Asset->chart_icon, '_assets/mobile');
-        $title->Asset->article_icon = $this->verifyPhoto($title->Asset->article_icon, '_assets/mobile');
-        $title->Asset->podcast_icon = $this->verifyPhoto($title->Asset->podcast_icon, '_assets/mobile');
-        $title->Asset->article_page_icon = $this->verifyPhoto($title->Asset->article_page_icon, '_assets/mobile');
-        $title->Asset->youtube_page_icon = $this->verifyPhoto($title->Asset->youtube_page_icon, '_assets/mobile');
+        $title = Title::with(['Asset' => function ($query) use ($theme) {
+                $query->where('is_dark_mode', $theme);
+            }])
+            ->findOrFail($id);
+
+        foreach ($title->Asset as $asset) {
+            $asset->logo = $this->verifyPhoto($asset->logo, '_assets/mobile');
+            $asset->chart_icon = $this->verifyPhoto($asset->chart_icon, '_assets/mobile');
+            $asset->article_icon = $this->verifyPhoto($asset->article_icon, '_assets/mobile');
+            $asset->podcast_icon = $this->verifyPhoto($asset->podcast_icon, '_assets/mobile');
+            $asset->article_page_icon = $this->verifyPhoto($asset->article_page_icon, '_assets/mobile');
+            $asset->youtube_page_icon = $this->verifyPhoto($asset->youtube_page_icon, '_assets/mobile');
+        }
 
         return response()->json([
             'title' => $title

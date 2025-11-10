@@ -25,6 +25,6 @@ class Title extends Model
     ];
 
     public function Asset() {
-        return $this->belongsTo(Asset::class);
+        return $this->hasMany(Asset::class);
     }
 }
