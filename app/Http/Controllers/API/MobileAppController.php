@@ -287,6 +287,11 @@ class MobileAppController extends Controller
                     ]);
             }
 
+            foreach ($categories as $category) {
+                $category->icon = $this->verifyPhoto($category->icon, '_assets/categories');;
+                $category->dark_mode_icon = $this->verifyPhoto($category->dark_mode_icon, '_assets/categories');;
+            }
+
             foreach ($articles as $article) {
                 $article->image = $this->verifyPhoto($article->image, 'articles');
                 $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
@@ -298,6 +303,11 @@ class MobileAppController extends Controller
                 'articles' => $articles,
                 'next' => $articles->nextPageUrl()
             ]);
+        }
+
+        foreach ($categories as $category) {
+            $category->icon = $this->verifyPhoto($category->icon, '_assets/categories');;
+            $category->dark_mode_icon = $this->verifyPhoto($category->dark_mode_icon, '_assets/categories');;
         }
 
         foreach ($articles as $article) {

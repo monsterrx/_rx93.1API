@@ -13,7 +13,9 @@ class Category extends Model
 
     protected $fillable = [
         'name',
-        'description'
+        'description',
+        'icon',
+        'dark_mode_icon'
     ];
 
     public function Article() {
